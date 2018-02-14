@@ -5,13 +5,13 @@ library(stringdist)
 
 ## read in the files and selecting relevant features
 
-PESSI <- read.csv('PESSI_Multan.csv', encoding = 'UTF-8') %>% select(Unit.Name, Tehsil, Nature.of.Business)
+PESSI <- read.csv('PESSI_Multan.csv', encoding = 'UTF-8') %>% select(Unit.Name, Tehsil, Nature.of.Business, Address.of.Establishment)
 ## converting factors to character variables
 PESSI <- data.frame(sapply(X = PESSI, FUN = as.character), stringsAsFactors=FALSE)
 
 str(PESSI)
 
-PVT_list <- read_csv('Pvt_schools_Multan_dir.csv') %>% select(SchoolName, TehsilName)
+PVT_list <- read_csv('Pvt_schools_Multan_dir.csv') %>% select(SchoolName, TehsilName, SchoolAddress)
 
 PESSI$Unit.Name <- gsub(pattern = '[Mm]/( )?[Ss](.)?', replacement = "", x = PESSI$Unit.Name)
 
@@ -35,8 +35,8 @@ sort(unique(PVT_list$TehsilName)) == sort(unique(PESSI$Tehsil))[2:10]
 
 tehsils <- sort(unique(PVT_list$TehsilName))
 
-consol <- data.frame(matrix(vector(), 0, 6,
-                            dimnames=list(c(), c("PESSI_schools", "BM1", "BM2", "BM3", "BM4", "BM5"))),
+consol <- data.frame(matrix(vector(), 0, 12,
+                            dimnames=list(c(), c("PESSI_schools", "Address", paste0("BM", 1:5), paste0("Address_BM", 1:5)))),
                      stringsAsFactors=F)
 
 
@@ -61,9 +61,11 @@ for (i in tehsils){
                                                                              which(a == sort(a)[5]))[1:5])})
   min_5_idx <- t(min_5_idx)
   
-  test <- as.data.frame(matrix(PVT_schools_list$SchoolName[min_5_idx], dim(dist_matrix)[1], 5))
+  school_match <- as.data.frame(matrix(PVT_schools_list$SchoolName[min_5_idx], dim(dist_matrix)[1], 5))
+  school_address <- as.data.frame(matrix(PVT_schools_list$SchoolAddress[min_5_idx], dim(dist_matrix)[1], 5))
   PESSI_schools_units <- PESSI_schools_subset$Unit.Name
-  comp_matrix <- cbind(PESSI_schools_units, test)
+  Address <- PESSI_schools_subset$Address.of.Establishment
+  comp_matrix <- cbind(PESSI_schools_units, Address, school_match, school_address)
   
   ##print(consol)
   print(comp_matrix)
@@ -71,5 +73,11 @@ for (i in tehsils){
   consol <- rbind(consol, comp_matrix)
 
 }
+
+names(consol) <- c("PESSI_schools", "Address", paste0("BM", 1:5), paste0("Address_BM", 1:5))
+consol <- consol %>% select_(.dots = c("PESSI_schools", "Address", paste0(c("BM", "Address_BM"), rep(x = 1:5, each = 2))))
+
+write.csv(x = consol, file = 'comparison.csv', row.names = FALSE)
+
 
 
